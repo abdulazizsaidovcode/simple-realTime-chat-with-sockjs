@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SockJS Chat</title>
+</head>
+
+<body>
+    <h2>SockJS Chat Example</h2>
+    <input type="text" id="messageInput" placeholder="Type your message here...">
+    <button onclick="sendMessage()">Send</button>
+    <ul id="messageList"></ul>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script>
+        let arr = [];
+
+        const sock = new SockJS('http://192.168.0.105/ws');
+        const config = {
+            headers: {
+                Authorization: "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIrOTk4OTk2NzY1MDc4In0.rtnZeCtqq9ob2Sm3roixRz8jrFLssghZ2rlivLCms4l3FpOUqaeQPgWgSfpOPb0YaMP8NM0oLsfO-IuNcuavFA"
+            }
+        };
+        const stompClient = Stomp.over(sock);
+
+        // STOMP Mijozini ulash va xabarlarni obuna qilish
+        stompClient.connect(config.headers, function (frame) {
+            console.log('Connected: ' + frame);
+
+            stompClient.subscribe("/user/79649ed4-d50a-4cdf-be6c-7f22f6d29fce/queue/messages", function (payload) {
+                const message = JSON.parse(payload.body);
+                console.log(message);
+                // showMessage(message.content);
+            }), function (error) {
+                console.error('STOMP error:', error);
+            }
+            // Xabarlarni qabul qilish uchun obuna qilish
+
+        })
+
+        // Foydalanuvchi xabar yuborganda, STOMP orqali yuborish
+        function sendMessage() {
+            let inp = {
+                senderId: "d9db20b3-4ec8-4424-85ce-0f319bbeef62", // jonatayotgan odam
+                recipientId: "79649ed4-d50a-4cdf-be6c-7f22f6d29fce", // qabul qiluvchi
+                content: document.getElementById('messageInput').value
+            }
+
+            const inputElement = document.getElementById('messageInput');
+            if (inputElement.value.trim() !== '') {
+                stompClient.send("/app/chat", {}, JSON,parse(inp));
+                inputElement.value = '';  // Input maydonini tozalash
+            }
+        }
+
+
+        // Qabul qilingan xabarni ekranga chiqarish
+        function showMessage(message) {
+            const messageElement = document.createElement('li');
+            messageElement.textContent = message;
+            document.getElementById('messageList').appendChild(messageElement);
+        }
+
+        fetch("http://192.168.0.105/chat/users", {
+            method: 'GET',
+            headers: config.headers
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.body);
+                arr = data.body;
+            })
+            .catch(err => console.log(err));
+    </script>
+</body>
+
+</html>

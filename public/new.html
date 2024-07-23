@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebSocket Example</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.4.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script>
+        var stompClient = null;
+
+        function connect() {
+            var socket = new SockJS('http://45.67.35.86:8080/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                console.log('Connected: ' + frame);
+                stompClient.subscribe('/user/ff4b5bbe-1932-4548-a783-eea3be4af982/queue/messages', function (response) {
+                    showGreeting(response.body);
+                    console.log(response.body );
+                });
+            }, function (error) {
+                console.error('Error connecting: ', error); // Add error callback
+            });
+        }
+
+        function sendName() {
+            const chatMessage = {
+                senderId: document.getElementById('sender').value,
+                recipientId: document.getElementById('recipient').value,
+                content: document.getElementById('name').value,
+                isRead: false,
+                createdAt: new Date(),
+                attachmentIds: [],
+            }
+            stompClient.send("/app/chat", {}, JSON.stringify(chatMessage));
+        }
+
+        function messageDelete() {
+            stompClient.send("/app/deleteMessage", {}, JSON.stringify(document.getElementById('chatId').value))
+        }
+
+        function editMessage() {
+            const editMessage = {
+                messageId: document.getElementById('chatId').value,
+                chatDto: {
+                    senderId: document.getElementById('sender').value,
+                    recipientId: document.getElementById('recipient').value,
+                    content: document.getElementById('name').value,
+                    isRead: false,
+                    createdAt: new Date(),
+                    attachmentIds: []
+                }
+            };
+            stompClient.send("/app/editMessage", {}, JSON.stringify(editMessage))
+        }
+
+        function replayChatMessage() {
+            const replayChat = {
+                messageId: document.getElementById('replayChatId').value,
+                chatDto: {
+                    senderId: document.getElementById('sender').value,
+                    recipientId: document.getElementById('recipient').value,
+                    content: document.getElementById('name').value,
+                    isRead: false,
+                    createdAt: new Date(),
+                    attachmentIds: []
+                }
+            };
+            stompClient.send("/app/replay", {}, JSON.stringify(replayChat))
+        }
+
+        function isReadMessage() {
+            stompClient.send("/app/isRead", {}, JSON.stringify(document.getElementById('isReadMessageId').value))
+        }
+
+        function showGreeting(message) {
+            var response = document.getElementById('response');
+            var p = document.createElement('p');
+            p.appendChild(document.createTextNode(message));
+            response.appendChild(p);
+        } document.addEventListener('DOMContentLoaded', (event) => {
+            connect();
+        });
+    </script>
+</head>
+
+<body>
+    <div>
+        <textarea type="text" id="name" placeholder="Enter your text"></textarea>
+        <input type="text" id="chatId" placeholder="Enter delete or edit for chat id">
+        <input type="text" id="replayChatId" placeholder="Enter replay chat id">
+        <input type="text" id="isReadMessageId" placeholder="Enter isRead chat id">
+        <input type="text" id="sender" placeholder="Enter sender id">
+        <input type="text" id="recipient" placeholder="Enter recipient id">
+        <button onclick="sendName();">Send</button>
+        <button onclick="messageDelete();">DELETE</button>
+        <button onclick="editMessage();">EDIT</button>
+        <button onclick="replayChatMessage();">REPLAY</button>
+        <button onclick="isReadMessage();">READ</button>
+    </div>
+    <div id="response"></div>
+</body>
+
+</html>
